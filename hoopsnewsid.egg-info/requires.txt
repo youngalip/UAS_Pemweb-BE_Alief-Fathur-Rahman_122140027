@@ -1,0 +1,15 @@
+pyramid
+SQLAlchemy
+psycopg2-binary
+pyramid_tm
+zope.sqlalchemy
+alembic
+waitress
+pyramid_debugtoolbar
+bcrypt
+PyJWT
+marshmallow
+
+[testing]
+WebTest
+pytest

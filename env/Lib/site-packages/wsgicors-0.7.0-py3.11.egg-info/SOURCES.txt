@@ -1,0 +1,14 @@
+AUTHORS.rst
+CHANGES.rst
+LICENSE
+MANIFEST.in
+README.rst
+setup.cfg
+setup.py
+test-wsgicors.py
+wsgicors.py
+wsgicors.egg-info/PKG-INFO
+wsgicors.egg-info/SOURCES.txt
+wsgicors.egg-info/dependency_links.txt
+wsgicors.egg-info/entry_points.txt
+wsgicors.egg-info/top_level.txt

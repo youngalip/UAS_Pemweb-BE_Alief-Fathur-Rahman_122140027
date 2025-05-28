@@ -1,0 +1,5 @@
+[console_scripts]
+initialize_hoopsnewsid_db = hoopsnewsid.scripts.initialize_db:main
+
+[paste.app_factory]
+main = hoopsnewsid:main
