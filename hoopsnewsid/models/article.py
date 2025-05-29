@@ -1,15 +1,8 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Table
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 import datetime
 from .meta import Base
-
-# Many-to-many relationship for article tags
-article_tag = Table(
-    'article_tag',
-    Base.metadata,
-    Column('article_id', Integer, ForeignKey('articles.id'), primary_key=True),
-    Column('tag_id', Integer, ForeignKey('tags.id'), primary_key=True)
-)
+from .association import article_tag
 
 class Article(Base):
     __tablename__ = 'articles'
@@ -35,14 +28,3 @@ class Article(Base):
     
     def __repr__(self):
         return f"<Article(title='{self.title}', author_id={self.author_id})>"
-
-class Tag(Base):
-    __tablename__ = 'tags'
-    
-    id = Column(Integer, primary_key=True)
-    name = Column(String(50), unique=True, nullable=False)
-    
-    articles = relationship('Article', secondary=article_tag, back_populates='tags')
-    
-    def __repr__(self):
-        return f"<Tag(name='{self.name}')>"

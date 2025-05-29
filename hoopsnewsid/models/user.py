@@ -20,6 +20,7 @@ class User(Base):
     
     articles = relationship('Article', back_populates='author')
     comments = relationship('Comment', back_populates='user')
+    threads = relationship('Thread', back_populates='user', cascade='all, delete-orphan')
     
     def __repr__(self):
         return f"<User(username='{self.username}', email='{self.email}')>"

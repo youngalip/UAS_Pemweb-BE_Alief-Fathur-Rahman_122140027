@@ -21,6 +21,9 @@ def main(global_config, **settings):
         #     max_age=3600,
         # )
         
+        # Serve static files dari folder 'static' di package 'hoopsnewsid'
+        config.add_static_view(name='static', path='hoopsnewsid:static')
+        
         # Setup security
         config.include('.security')
         

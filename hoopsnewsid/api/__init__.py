@@ -27,13 +27,20 @@ def includeme(config):
     config.add_route('api_admin_articles', '/api/admin/articles')
     config.add_route('api_admin_comments', '/api/admin/comments')
     
+    # Tambahkan route untuk approval komentar
+    config.add_route('api_admin_approve_comment', '/api/admin/comments/{id:\d+}/approve')
+    config.add_route('api_admin_reject_comment', '/api/admin/comments/{id:\d+}/reject')
+
+    # Community routes
+    config.add_route('api_threads', '/api/community/threads')
+    config.add_route('api_thread_detail', '/api/community/threads/{id}')
+    config.add_route('api_thread_comments', '/api/community/threads/{id}/comments')
+    config.add_route('api_comment_detail', '/api/community/threads/{thread_id}/comments/{comment_id}')
+    
     # Include views
     config.scan('.auth')
     config.scan('.articles')
     config.scan('.users')
     config.scan('.comments')
     config.scan('.admin')
-
-    # Tambahkan route untuk approval komentar
-    config.add_route('api_admin_approve_comment', '/api/admin/comments/{id:\d+}/approve')
-    config.add_route('api_admin_reject_comment', '/api/admin/comments/{id:\d+}/reject')
+    config.scan('.community')  # Jangan lupa scan modul community jika ada

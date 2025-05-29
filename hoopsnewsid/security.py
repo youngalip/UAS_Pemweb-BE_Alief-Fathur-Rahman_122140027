@@ -1,12 +1,8 @@
+from pyramid.httpexceptions import HTTPUnauthorized
 from pyramid.authentication import CallbackAuthenticationPolicy
 from pyramid.authorization import ACLAuthorizationPolicy
-from pyramid.security import (
-    Authenticated,
-    Everyone,
-    Allow,
-    Deny,
-    ALL_PERMISSIONS,
-)
+from pyramid.security import Authenticated, Everyone, Allow, ALL_PERMISSIONS
+
 from .utils.jwt import decode_token
 from .models import User
 
@@ -17,7 +13,7 @@ class JWTAuthenticationPolicy(CallbackAuthenticationPolicy):
     def unauthenticated_userid(self, request):
         token = request.headers.get('Authorization', '')
         if token.startswith('Bearer '):
-            token = token[7:]  # Remove 'Bearer ' prefix
+            token = token[7:]
             payload = decode_token(token, request)
             if payload:
                 return payload.get('sub')
@@ -29,11 +25,33 @@ class JWTAuthenticationPolicy(CallbackAuthenticationPolicy):
     def forget(self, request):
         return []
 
+# Callback yang mengembalikan list principals (string)
+def get_principals(userid, request):
+    user = None
+    if userid is not None:
+        user = request.db.query(User).filter(User.id == userid).first()
+    if not user:
+        return []
+    principals = [f'user:{user.id}']
+    if user.is_admin:
+        principals.append('role:admin')
+    principals.append(Authenticated)
+    principals.append(Everyone)
+    return principals
+
+# Fungsi untuk request.user (mengembalikan objek User)
 def get_user(request):
-    user_id = request.unauthenticated_userid
-    if user_id is not None:
-        return request.db.query(User).filter(User.id == user_id).first()
+    userid = request.unauthenticated_userid
+    if userid is not None:
+        return request.db.query(User).filter(User.id == userid).first()
     return None
+
+def require_auth(view):
+    def wrapped_view(context, request):
+        if not hasattr(request, 'user') or request.user is None:
+            raise HTTPUnauthorized()
+        return view(context, request)
+    return wrapped_view
 
 class RootFactory:
     __acl__ = [
@@ -46,19 +64,10 @@ class RootFactory:
         self.request = request
 
 def includeme(config):
-    # Set up authentication
-    authn_policy = JWTAuthenticationPolicy(get_user)
+    authn_policy = JWTAuthenticationPolicy(callback=get_principals)
     config.set_authentication_policy(authn_policy)
-    
-    # Set up authorization
-    authz_policy = ACLAuthorizationPolicy()
-    config.set_authorization_policy(authz_policy)
-    
-    # Set up default permission
+    config.set_authorization_policy(ACLAuthorizationPolicy())
     config.set_default_permission('view')
-    
-    # Set up root factory
     config.set_root_factory(RootFactory)
 
-    # **Tambahkan ini supaya request.user tersedia di view**
     config.add_request_method(get_user, 'user', reify=True)
