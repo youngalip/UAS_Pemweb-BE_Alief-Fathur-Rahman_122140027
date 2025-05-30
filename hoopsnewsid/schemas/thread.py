@@ -1,5 +1,6 @@
 from marshmallow import Schema, fields, validate, INCLUDE
 from .user import UserSchema
+from .article import TagSchema
 
 class ThreadSchema(Schema):
     class Meta:

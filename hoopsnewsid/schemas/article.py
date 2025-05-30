@@ -38,4 +38,4 @@ class ArticleListSchema(Schema):
 
 class TagSchema(Schema):
     id = fields.Int(dump_only=True)
-    name = fields.Str(required=True, validate=validate.Length(min=2, max=50))
+    name = fields.Str(required=True, validate=validate.Length(min=1, max=50))
