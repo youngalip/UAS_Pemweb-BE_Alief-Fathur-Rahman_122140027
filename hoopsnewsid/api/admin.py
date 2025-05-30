@@ -42,30 +42,35 @@ def get_admin_stats(request):
         })
     
     for article in recent_articles:
+        author = article.author
         recent_activities.append({
             'type': 'article_created',
             'user': {
-                'id': article.author.id,
-                'username': article.author.username,
-                'name': article.author.full_name,
-                'avatarUrl': article.author.avatar_url
+                'id': author.id if author else None,
+                'username': author.username if author else 'Unknown',
+                'name': author.full_name if author else 'Unknown',
+                'avatarUrl': author.avatar_url if author else None
             },
             'description': f'Menambahkan artikel baru "{article.title}"',
             'time': article.created_at.isoformat()
         })
+
     
     for comment in recent_comments:
+        user = comment.user
+        article = comment.article
         recent_activities.append({
             'type': 'comment_added',
             'user': {
-                'id': comment.user.id,
-                'username': comment.user.username,
-                'name': comment.user.full_name,
-                'avatarUrl': comment.user.avatar_url
+                'id': user.id if user else None,
+                'username': user.username if user else 'Unknown',
+                'name': user.full_name if user else 'Unknown',
+                'avatarUrl': user.avatar_url if user else None
             },
-            'description': f'Mengomentari artikel "{comment.article.title}"',
+            'description': f'Mengomentari artikel "{article.title if article else "Unknown"}"',
             'time': comment.created_at.isoformat()
         })
+
     
     # Sort activities by time
     recent_activities.sort(key=lambda x: x['time'], reverse=True)
@@ -74,18 +79,20 @@ def get_admin_stats(request):
     # Format popular articles
     popular_articles_data = []
     for article in popular_articles:
+        author = article.author
         popular_articles_data.append({
             'id': article.id,
             'title': article.title,
             'author': {
-                'id': article.author.id,
-                'name': article.author.full_name,
-                'avatarUrl': article.author.avatar_url
+                'id': author.id if author else None,
+                'name': author.full_name if author else 'Unknown',
+                'avatarUrl': author.avatar_url if author else None
             },
             'category': article.category.name if article.category else 'Uncategorized',
             'views': article.views,
             'publishedDate': article.published_at.isoformat() if article.published_at else article.created_at.isoformat()
         })
+
     
     return {
         'totalUsers': total_users,

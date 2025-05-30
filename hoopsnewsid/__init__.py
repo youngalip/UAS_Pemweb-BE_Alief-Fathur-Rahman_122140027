@@ -11,16 +11,6 @@ def main(global_config, **settings):
         # Setup database
         config.include('.db')
         
-        # **Jangan include pyramid_cors karena pakai wsgicors di development.ini**
-        # config.include('pyramid_cors')
-        # config.set_cors_options(
-        #     allow_origins=['http://localhost:5173'],  # Frontend URL
-        #     allow_methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-        #     allow_headers=['Content-Type', 'Authorization'],
-        #     expose_headers=['Content-Type', 'Authorization'],
-        #     max_age=3600,
-        # )
-        
         # Serve static files dari folder 'static' di package 'hoopsnewsid'
         config.add_static_view(name='static', path='hoopsnewsid:static')
         
