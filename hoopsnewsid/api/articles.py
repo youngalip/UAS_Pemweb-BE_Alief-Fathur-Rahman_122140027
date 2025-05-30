@@ -7,6 +7,7 @@ import datetime
 import re
 import string
 import random
+import transaction
 
 def generate_slug(title):
     """Generate a URL-friendly slug from a title."""
@@ -74,22 +75,92 @@ def get_articles(request):
 
 @view_config(route_name='api_article', renderer='json', request_method='GET')
 def get_article(request):
+    
     article_id = int(request.matchdict['id'])
-    article = request.db.query(Article).filter(Article.id == article_id).first()
+    
+    db = request.db
+    article = db.query(Article).filter(Article.id == article_id).first()
     
     if not article:
         return HTTPNotFound(json={'error': 'Article not found'})
     
-    # Check if user can view draft articles
     if article.status == 'draft' and (not request.user or (not request.user.is_admin and request.user.id != article.author_id)):
         return HTTPNotFound(json={'error': 'Article not found'})
     
-    # Increment view count
-    article.views += 1
-    request.db.add(article)
-    
     schema = ArticleSchema()
-    return schema.dump(article)
+    article_data = schema.dump(article)
+    
+    try:
+        with transaction.manager:
+            article_to_update = db.query(Article).filter(Article.id == article_id).first()
+            if article_to_update:
+                article_to_update.views += 1
+                db.add(article_to_update)
+    except Exception as e:
+        import logging
+        log = logging.getLogger(__name__)
+        log.error(f"Error incrementing view count for article {article_id}: {e}")
+    
+    return article_data
+
+@view_config(route_name='api_articles_related', renderer='json', request_method='GET')
+def get_related_articles(request):
+    # Ambil parameter dari query string
+    category_id = request.params.get('categoryId')
+    article_id = request.params.get('articleId')
+    tags = request.params.getall('tags[]') if 'tags[]' in request.params else []
+    limit = int(request.params.get('limit', 6))
+    
+    # Buat query dasar
+    db = request.db
+    query = db.query(Article).filter(Article.status == 'published')
+    
+    # Exclude artikel saat ini
+    if article_id:
+        query = query.filter(Article.id != int(article_id))
+    
+    # Filter berdasarkan kategori jika ada
+    if category_id:
+        query = query.filter(Article.category_id == int(category_id))
+    
+    # Filter berdasarkan tags jika ada
+    if tags:
+        # Subquery untuk artikel dengan tag yang cocok
+        from sqlalchemy import func
+        tag_count = func.count(Tag.id).label('tag_count')
+        tag_subquery = db.query(Article.id, tag_count)\
+            .join(Article.tags)\
+            .filter(Tag.name.in_(tags))\
+            .group_by(Article.id)\
+            .subquery()
+        
+        # Join dengan subquery dan urutkan berdasarkan jumlah tag yang cocok
+        query = query.join(tag_subquery, Article.id == tag_subquery.c.id)\
+            .order_by(tag_subquery.c.tag_count.desc())
+    
+    # Batasi jumlah hasil
+    articles = query.order_by(Article.published_at.desc()).limit(limit).all()
+    
+    # Jika hasil kurang dari limit, tambahkan artikel terbaru
+    if len(articles) < limit:
+        # Artikel yang sudah diambil
+        existing_ids = [a.id for a in articles]
+        if article_id:
+            existing_ids.append(int(article_id))
+        
+        # Ambil artikel terbaru yang belum diambil
+        recent_articles = db.query(Article)\
+            .filter(Article.status == 'published')\
+            .filter(Article.id.notin_(existing_ids))\
+            .order_by(Article.published_at.desc())\
+            .limit(limit - len(articles))\
+            .all()
+        
+        articles.extend(recent_articles)
+    
+    schema = ArticleListSchema(many=True)
+    return schema.dump(articles)
+
 
 @view_config(route_name='api_articles', renderer='json', request_method='POST', permission='create')
 def create_article(request):
@@ -102,36 +173,33 @@ def create_article(request):
     except Exception as e:
         return HTTPBadRequest(json={'error': str(e)})
     
-    # Generate slug from title
     slug = generate_slug(data['title'])
     
-    # Create article
-    article = Article(
-        title=data['title'],
-        slug=slug,
-        excerpt=data.get('excerpt', ''),
-        content=data['content'],
-        image_url=data.get('image_url', ''),
-        status=data.get('status', 'published'),
-        author_id=request.user.id,
-        category_id=data.get('category_id'),
-        created_at=datetime.datetime.utcnow(),
-        updated_at=datetime.datetime.utcnow(),
-        published_at=datetime.datetime.utcnow() if data.get('status') != 'draft' else None
-    )
-    
-    # Add tags if provided
-    if 'tags' in data and isinstance(data['tags'], list):
-        for tag_name in data['tags']:
-            tag = request.db.query(Tag).filter(Tag.name == tag_name).first()
-            if not tag:
-                tag = Tag(name=tag_name)
-                request.db.add(tag)
-                request.db.flush()
-            article.tags.append(tag)
-    
-    request.db.add(article)
-    request.db.flush()
+    with transaction.manager:
+        article = Article(
+            title=data['title'],
+            slug=slug,
+            excerpt=data.get('excerpt', ''),
+            content=data['content'],
+            image_url=data.get('image_url', ''),
+            status=data.get('status', 'published'),
+            author_id=request.user.id,
+            category_id=data.get('category_id'),
+            created_at=datetime.datetime.utcnow(),
+            updated_at=datetime.datetime.utcnow(),
+            published_at=datetime.datetime.utcnow() if data.get('status') != 'draft' else None
+        )
+        
+        if 'tags' in data and isinstance(data['tags'], list):
+            for tag_name in data['tags']:
+                tag = request.db.query(Tag).filter(Tag.name == tag_name).first()
+                if not tag:
+                    tag = Tag(name=tag_name)
+                    request.db.add(tag)
+                    request.db.flush()
+                article.tags.append(tag)
+        
+        request.db.add(article)
     
     return HTTPCreated(json=schema.dump(article))
 

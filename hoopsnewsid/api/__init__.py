@@ -11,6 +11,7 @@ def includeme(config):
     config.add_route('api_article', '/api/articles/{id:\d+}')
     config.add_route('categories', '/api/categories')
     config.add_route('api_article_comments', '/api/articles/{id:\d+}/comments')
+    config.add_route('api_articles_related', '/api/articles/related')
     
     # Comment routes
     config.add_route('api_comment', '/api/comments/{id:\d+}')
