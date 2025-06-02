@@ -27,6 +27,10 @@ def includeme(config):
     config.add_route('api_admin_users', '/api/admin/users')
     config.add_route('api_admin_articles', '/api/admin/articles')
     config.add_route('api_admin_comments', '/api/admin/comments')
+    config.add_route('api_admin_threads', '/api/admin/threads')
+    config.add_route('api_admin_thread_delete', '/api/admin/threads/{id}')
+    config.add_route('api_admin_article_delete', '/api/admin/articles/{id}')
+    config.add_route('api_admin_user_delete', '/api/admin/users/{id}')
     
     # Tambahkan route untuk approval komentar
     config.add_route('api_admin_approve_comment', '/api/admin/comments/{id:\d+}/approve')

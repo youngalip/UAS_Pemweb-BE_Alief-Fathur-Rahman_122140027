@@ -56,6 +56,7 @@ def require_auth(view):
 class RootFactory:
     __acl__ = [
         (Allow, 'role:admin', ALL_PERMISSIONS),
+        (Allow, 'role:admin', 'admin'),
         (Allow, Authenticated, 'view'),
         (Allow, Everyone, 'view'),
     ]
